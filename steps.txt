@@ -1,0 +1,19 @@
+- Install the C# Dev Kit extension
+- Install the SQLite extension
+- Create project with
+    dotnet new web
+    dotnet new list <- List of templates
+
+How do we build the project?
+On the solution, right click -> build OR
+    dotnet build
+Or ctrl+shift+b with the C# Dev kit extension
+
+How do we run the project?
+f5 -> C# -> Default config OR
+dotnet watch run
+
+dotnet tool install --global dotnet-ef --version 8.0.4
+
+dotnet ef migrations add InitialCreate --output-dir Data\Migrations
+dotnet ef database update
