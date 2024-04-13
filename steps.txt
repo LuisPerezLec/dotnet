@@ -17,3 +17,71 @@ dotnet tool install --global dotnet-ef --version 8.0.4
 
 dotnet ef migrations add InitialCreate --output-dir Data\Migrations
 dotnet ef database update
+
+dotnet ef migrations add SeedGenres --output-dir Data/Migrations
+
+
+Dependency injection <- Desing pattern -------------------
+We have 2 classes, MyService and MyLogger
+MyLogger is a dependency of MyService in the form:
+public MyService()
+{
+    var logger = new MyLogger();
+    logger.LogThis("I'm Ready");
+}
+
+If the MyLogger class changes, and now requires a different
+instantiation, we have to update MyService too.
+So, we have an alternative, dependency injection.
+public MyService(MyLogger logger) <- Dependency inside
+{
+    logger.LogThis("I'm Ready");
+}
+Now, MyService doesn't constructs the logger.
+ASP.NET Core provides the Service Container "IServiceProvider"
+So now, the new dependencies are registered on IServiceProvider
+during startup, usually on Program.cs
+
+Dependency Inversion Principle
+"Code should depend on abstractions as oppossed to concrete implementations".
+If for some reason, we have to inject a different dependency,
+instead of modifying MyService to implement the second dependency
+instead of the firstone, we can create a new interface ILogger.
+public MyService(ILogger logger)
+{
+    logger.LogThis("I'm Ready");
+}
+
+3 Service Lifetimes
+1.- AddTransient<MyLogger>()
+Each time that MyService recieves an HTTP Request,
+IServiceProvider constructs and inject a new independent
+instance of the dependency.
+(First time also resolves).
+
+2.- AddScoped<MyLogger>()
+First time that MyService recieves an HTTP Request,
+IServiceProvider will resolve, construct and inject a new
+instance of the dependency.
+If other Services participates in the same HTTP Request, it
+will recieve the exact same instance of the Dependency.
+If other HTTP Request arrives, the Service container will
+create and inject a brand new instance of the dependency.
+
+3.- AddSingleton<MyLogger>()
+When an HTTP request arrives, the IServiceProvider will
+resolve, construct and inject a new instance of the dependency.
+If there is other service that participates in that same HTTP
+Request, it will receive the same exact instance of the dependency.
+Furthermore, if a new HTTP Request arrives, the service container
+will once again provide the same instance of the Dependency, until
+the application is shutdown. 
+
+
+
+
+
+
+
+
+
