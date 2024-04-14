@@ -1,4 +1,8 @@
-﻿using dotnet.Dtos;
+﻿using dotnet.Data;
+using dotnet.Dtos;
+using dotnet.Entities;
+using dotnet.Mapping;
+using Microsoft.EntityFrameworkCore;
 
 namespace dotnet.Endpoints;
 
@@ -6,84 +10,64 @@ public static class GamesEndpoints
 {
     const string GetGameEndpointName = "GetGame";
 
-    private static readonly List<GameDto> games = [
-        new (
-            1,
-            "Valorant",
-            "FPS",
-            0,
-            new DateOnly(2020, 5, 26)
-        ),
-        new (
-            2,
-            "Dota 2",
-            "MOBA",
-            0,
-            new DateOnly(2010, 8, 20)
-        ),
-        new (
-            3,
-            "The Legend of Zelda: Majora's Mask",
-            "Action-adventure",
-            29.99M,
-            new DateOnly(1998, 11, 18)
-        )
-    ];
-
     public static RouteGroupBuilder MapGamesEndpoints(this WebApplication app){
         
         var group = app.MapGroup("games")
             .WithParameterValidation();
         
         // GET /games
-        group.MapGet("/", () => games);
-
-        // GET /games/1
-        group.MapGet("/{id}", (int id) =>
-        {
-            GameDto? game = games.Find(game => game.Id == id);
-
-            return game is null ? Results.NotFound() : Results.Ok(game);
-        })
-        .WithName(GetGameEndpointName);
-
-        // POST /games
-        group.MapPost("/", (CreateGameDto newGame) => {
-
-            GameDto game = new (
-                games.Count + 1,
-                newGame.Name,
-                newGame.Genre,
-                newGame.Price,
-                newGame.ReleaseDate
-            );
-
-            games.Add(game);
-            return Results.CreatedAtRoute(GetGameEndpointName, new { id = game.Id }, game);
+        group.MapGet("/", (GameStoreContext dbContext) => {
+            return dbContext.Games
+                .Include(game => game.Genre)
+                .Select(game => game.ToGameSummaryDto())
+                .AsNoTracking();
         });
 
-        // PUT /games
-        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame) => {
-            var index = games.FindIndex(game => game.Id == id);
+        // GET /games/1
+        group.MapGet("/{id}", (int id, GameStoreContext dbContext) =>
+        {
+            Game? game = dbContext.Games.Find(id);
 
-            if (index == -1 ){
+            return game is null ?
+            Results.NotFound() : Results.Ok(game.ToGameDetailsDto());
+        });
+
+        // POST /games
+        group.MapPost("/", (CreateGameDto newGame, GameStoreContext dbContext) => { //Using the record CreateGameDto, and dependency dbContext
+            Game game = newGame.ToEntity();
+
+            dbContext.Games.Add(game);
+            dbContext.SaveChanges();
+
+            return Results.CreatedAtRoute(
+                GetGameEndpointName,
+                new { id = game.Id },
+                game.ToGameDetailsDto());
+        }); //For now, this posts, but breakes the code and stops the server, need to fix
+
+        // PUT /games
+        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) => {
+            var existingGame = dbContext.Games.Find(id);
+            
+            if (existingGame is null){
                 return Results.NotFound();
             }
 
-            games[index] = new GameDto(
-                id,
-                updatedGame.Name,
-                updatedGame.Genre,
-                updatedGame.Price,
-                updatedGame.ReleaseDate
-            );
+            dbContext.Entry(existingGame)
+                .CurrentValues
+                .SetValues(updatedGame.ToEntity(id));
+            dbContext.SaveChanges();
 
             return Results.NoContent();
         });
 
         // DELETE /games/1
-        group.MapDelete("/{id}", (int id) => {
-            games.RemoveAll(game => game.Id == id);
+        group.MapDelete("/{id}", (int id, GameStoreContext dbContext) => {
+            var gameToRemove = dbContext.Games.Find(id);
+            if(gameToRemove != null){
+                dbContext.Games.Remove(gameToRemove);
+                dbContext.SaveChanges();
+            }
 
             return Results.NoContent();
         });
