@@ -1,4 +1,5 @@
-﻿using dotnet.Entities;
+﻿using dotnet.Dtos;
+using dotnet.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace dotnet.Data;

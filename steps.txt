@@ -1,5 +1,4 @@
 - Install the C# Dev Kit extension
-- Install the SQLite extension
 - Create project with
     dotnet new web
     dotnet new list <- List of templates
@@ -75,15 +74,4 @@ If there is other service that participates in that same HTTP
 Request, it will receive the same exact instance of the dependency.
 Furthermore, if a new HTTP Request arrives, the service container
 will once again provide the same instance of the Dependency, until
-the application is shutdown. 
-
-
-
-
-
-
-
-
-
-
-
+the application is shutdown.

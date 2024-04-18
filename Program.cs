@@ -14,6 +14,7 @@ builder.Services.AddDbContext<GameStoreContext>( options => //Registers an AddSc
 var app = builder.Build();
 
 app.MapGamesEndpoints();
-app.MigrateDb();
+app.MapGenresEndpoints();
+await app.MigrateDbAsync();
 
 app.Run();
